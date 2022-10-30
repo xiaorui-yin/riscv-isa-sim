@@ -728,6 +728,8 @@ riscv_insn_ext_v_alu_fp = \
 	vfdiv_vv \
 	vfmacc_vf \
 	vfmacc_vv \
+	vfbmacc_vf \
+	vfbmacc_vv \
 	vfmadd_vf \
 	vfmadd_vv \
 	vfmax_vf \
@@ -861,6 +863,10 @@ riscv_insn_ext_v_ldst = \
 	vle16_v \
 	vle32_v \
 	vle64_v \
+	vle8bc_v \
+	vle16bc_v \
+	vle32bc_v \
+	vle64bc_v \
 	vloxei8_v \
 	vloxei16_v \
 	vloxei32_v \
@@ -916,6 +922,7 @@ riscv_insn_ext_v_ldst = \
 	vs8r_v \
 
 riscv_insn_ext_v_ctrl = \
+	vsetbl \
 	vsetivli \
 	vsetvli \
 	vsetvl \

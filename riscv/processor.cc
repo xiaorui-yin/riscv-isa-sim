@@ -166,9 +166,12 @@ void processor_t::parse_varch_string(const char* s)
   if (vlen > 4096)
     bad_varch_string(s, "vlen must be <= 4096");
 
+  int blen = 1024;
+
   VU.VLEN = vlen;
   VU.ELEN = elen;
   VU.vlenb = vlen / 8;
+  VU.blenb = blen / 8;
   VU.vstart_alu = vstart_alu;
 }
 
@@ -507,18 +510,24 @@ void state_t::reset(processor_t* const proc, reg_t max_isa)
 void processor_t::vectorUnit_t::reset()
 {
   free(reg_file);
+  free(bc_buffer);
   VLEN = get_vlen();
   ELEN = get_elen();
+  BLEN = get_blen();
   reg_file = malloc(NVPR * vlenb);
   memset(reg_file, 0, NVPR * vlenb);
+  bc_buffer = malloc(blenb);
+  memset(bc_buffer, 0, blenb);
 
   auto& csrmap = p->get_state()->csrmap;
   csrmap[CSR_VXSAT] = vxsat = std::make_shared<vxsat_csr_t>(p, CSR_VXSAT);
   csrmap[CSR_VSTART] = vstart = std::make_shared<vector_csr_t>(p, CSR_VSTART, /*mask*/ VLEN - 1);
   csrmap[CSR_VXRM] = vxrm = std::make_shared<vector_csr_t>(p, CSR_VXRM, /*mask*/ 0x3ul);
   csrmap[CSR_VL] = vl = std::make_shared<vector_csr_t>(p, CSR_VL, /*mask*/ 0);
+  csrmap[CSR_BL] = bl = std::make_shared<vector_csr_t>(p, CSR_BL, /*mask*/ 0);
   csrmap[CSR_VTYPE] = vtype = std::make_shared<vector_csr_t>(p, CSR_VTYPE, /*mask*/ 0);
   csrmap[CSR_VLENB] = std::make_shared<vector_csr_t>(p, CSR_VLENB, /*mask*/ 0, /*init*/ vlenb);
+  csrmap[CSR_BLENB] = std::make_shared<vector_csr_t>(p, CSR_BLENB, /*mask*/ 0, /*init*/ blenb);
   assert(VCSR_VXSAT_SHIFT == 0);  // composite_csr_t assumes vxsat begins at bit 0
   csrmap[CSR_VCSR] = std::make_shared<composite_csr_t>(p, CSR_VCSR, vxrm, vxsat, VCSR_VXRM_SHIFT);
 
@@ -563,6 +572,14 @@ reg_t processor_t::vectorUnit_t::set_vl(int rd, int rs1, reg_t reqVL, reg_t newT
   vstart->write_raw(0);
   setvl_count++;
   return vl->read();
+}
+
+reg_t processor_t::vectorUnit_t::set_bl(reg_t reqBL)
+{
+  bl->write_raw(reqBL);
+
+  vstart->write_raw(0);
+  return bl->read();
 }
 
 void processor_t::set_debug(bool value)

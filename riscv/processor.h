@@ -381,16 +381,18 @@ public:
     public:
       processor_t* p;
       void *reg_file;
+      void *bc_buffer;
       char reg_referenced[NVPR];
       int setvl_count;
       reg_t vlmax;
       reg_t vlenb;
+      reg_t blenb;
       csr_t_p vxsat;
-      vector_csr_t_p vxrm, vstart, vl, vtype;
+      vector_csr_t_p vxrm, vstart, vl, vtype, bl;
       reg_t vma, vta;
       reg_t vsew;
       float vflmul;
-      reg_t ELEN, VLEN;
+      reg_t ELEN, VLEN, BLEN;
       bool vill;
       bool vstart_alu;
 
@@ -417,6 +419,13 @@ public:
           T *regStart = (T*)((char*)reg_file + vReg * (VLEN >> 3));
           return regStart[n];
         }
+
+      // broadcast buffer element for various SEW
+      template<class T>
+        T& bc_elt(reg_t n) {
+          T *bufferStart = (T*)((char*)bc_buffer);
+          return bufferStart[n];
+        }
     public:
 
       void reset();
@@ -424,35 +433,43 @@ public:
       vectorUnit_t():
         p(0),
         reg_file(0),
+        bc_buffer(0),
         reg_referenced{0},
         setvl_count(0),
         vlmax(0),
         vlenb(0),
+        blenb(0),
         vxsat(0),
         vxrm(0),
         vstart(0),
         vl(0),
         vtype(0),
+        bl(0),
         vma(0),
         vta(0),
         vsew(0),
         vflmul(0),
         ELEN(0),
         VLEN(0),
+        BLEN(0),
         vill(false),
         vstart_alu(false) {
       }
 
       ~vectorUnit_t() {
         free(reg_file);
+        free(bc_buffer);
         reg_file = 0;
+        bc_buffer = 0;
       }
 
       reg_t set_vl(int rd, int rs1, reg_t reqVL, reg_t newType);
+      reg_t set_bl(reg_t reqBL);
 
       reg_t get_vlen() { return VLEN; }
       reg_t get_elen() { return ELEN; }
       reg_t get_slen() { return VLEN; }
+      reg_t get_blen() { return BLEN; }
 
       VRM get_vround_mode() {
         return (VRM)(vxrm->read());

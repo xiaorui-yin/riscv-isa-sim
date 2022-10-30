@@ -1190,6 +1190,21 @@ reg_t index[P.VU.vlmax]; \
   } \
   P.VU.vstart->write(0);
 
+#define VI_LD_BC(offset, elt_width, is_mask_ldst) \
+  const reg_t nf = insn.v_nf() + 1; \
+  const reg_t bl = P.VU.bl->read(); \
+  const reg_t baseAddr = RS1; \
+  for (reg_t i = 0; i < bl; ++i) { \
+    VI_STRIP(i); \
+    P.VU.vstart->write(i); \
+    for (reg_t fn = 0; fn < nf; ++fn) { \
+      elt_width##_t val = MMU.load<elt_width##_t>( \
+        baseAddr + offset * sizeof(elt_width##_t)); \
+      P.VU.bc_elt<elt_width##_t>(vreg_inx) = val; \
+    } \
+  } \
+  P.VU.vstart->write(0);
+
 #define VI_LD_INDEX(elt_width, is_seg) \
   const reg_t nf = insn.v_nf() + 1; \
   const reg_t vl = P.VU.vl->read(); \
@@ -2061,5 +2076,101 @@ reg_t index[P.VU.vlmax]; \
       require(0); \
       break; \
   }
+
+#define VI_VFP_BC_COMMON \
+  require_fp; \
+  require((P.VU.vsew == e16 && p->extension_enabled(EXT_ZFH)) || \
+          (P.VU.vsew == e32 && p->extension_enabled('F')) || \
+          (P.VU.vsew == e64 && p->extension_enabled('D'))); \
+  require_vector(true); \
+  require(STATE.frm->read() < 0x5); \
+  reg_t UNUSED vl = P.VU.vl->read(); \
+  reg_t UNUSED bl = P.VU.bl->read(); \
+  reg_t UNUSED rd_num = insn.rd(); \
+  reg_t UNUSED rs1_num = insn.rs1(); \
+  reg_t UNUSED rs2_num = insn.rs2(); \
+  softfloat_roundingMode = STATE.frm->read();
+
+#define VI_VFP_BC_LOOP_BASE \
+  VI_VFP_BC_COMMON \
+  for (reg_t i = P.VU.vstart->read(); i < vl; ++i) { \
+    rd_num += i; \
+    for (reg_t j = 0; j < bl; ++j) { \
+      VI_LOOP_ELEMENT_SKIP();
+
+#define VI_VFP_BC_LOOP_END \
+    } \
+  } \
+  P.VU.vstart->write(0);
+
+#define VFP_VF_BC_PARAMS(width) \
+  float##width##_t &vd = P.VU.elt<float##width##_t>(rd_num, j, true); \
+  float##width##_t rs1 = f##width(READ_FREG(rs1_num)); \
+  float##width##_t vs2 = P.VU.elt<float##width##_t>(rs2_num, i); \
+  float##width##_t bc  = P.VU.bc_elt<float##width##_t>(j);
+
+#define VI_VFP_VF_BC_LOOP(BODY16, BODY32, BODY64) \
+  VI_CHECK_SSS(false); \
+  VI_VFP_BC_LOOP_BASE \
+  switch (P.VU.vsew) { \
+    case e16: { \
+      VFP_VF_BC_PARAMS(16); \
+      BODY16; \
+      set_fp_exceptions; \
+      break; \
+    } \
+    case e32: { \
+      VFP_VF_BC_PARAMS(32); \
+      BODY32; \
+      set_fp_exceptions; \
+      break; \
+    } \
+    case e64: { \
+      VFP_VF_BC_PARAMS(64); \
+      BODY64; \
+      set_fp_exceptions; \
+      break; \
+    } \
+    default: \
+      require(0); \
+      break; \
+  }; \
+  DEBUG_RVV_FP_VF; \
+  VI_VFP_BC_LOOP_END
+
+
+#define VFP_VV_BC_PARAMS(width) \
+  float##width##_t &vd = P.VU.elt<float##width##_t>(rd_num, j, true); \
+  float##width##_t vs2 = P.VU.elt<float##width##_t>(rs2_num, i); \
+  float##width##_t bc  = P.VU.bc_elt<float##width##_t>(j);
+
+#define VI_VFP_VV_BC_LOOP(BODY16, BODY32, BODY64) \
+  VI_CHECK_SSS(true); \
+  VI_VFP_BC_LOOP_BASE \
+  switch (P.VU.vsew) { \
+    case e16: { \
+      VFP_VV_BC_PARAMS(16); \
+      BODY16; \
+      set_fp_exceptions; \
+      break; \
+    } \
+    case e32: { \
+      VFP_VV_BC_PARAMS(32); \
+      BODY32; \
+      set_fp_exceptions; \
+      break; \
+    } \
+    case e64: { \
+      VFP_VV_BC_PARAMS(64); \
+      BODY64; \
+      set_fp_exceptions; \
+      break; \
+    } \
+    default: \
+      require(0); \
+      break; \
+  }; \
+  DEBUG_RVV_FP_VV; \
+  VI_VFP_BC_LOOP_END
 
 #endif
