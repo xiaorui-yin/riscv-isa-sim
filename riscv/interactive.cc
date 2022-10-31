@@ -307,6 +307,7 @@ void sim_t::interactive()
   funcs["r"] = funcs["run"];
   funcs["rs"] = &sim_t::interactive_run_silent;
   funcs["vreg"] = &sim_t::interactive_vreg;
+  funcs["bcbuf"] = &sim_t::interactive_bcbuf;
   funcs["reg"] = &sim_t::interactive_reg;
   funcs["freg"] = &sim_t::interactive_freg;
   funcs["fregh"] = &sim_t::interactive_fregh;
@@ -396,6 +397,7 @@ void sim_t::interactive_help(const std::string& cmd, const std::vector<std::stri
     "fregs <core> <reg>              # Display single precision <reg> in <core>\n"
     "fregd <core> <reg>              # Display double precision <reg> in <core>\n"
     "vreg <core> [reg]               # Display vector [reg] (all if omitted) in <core>\n"
+    "bcbuf<core>                     # Display broadcast buffer in <core>\n"
     "pc <core>                       # Show current PC in <core>\n"
     "priv <core>                     # Show current privilege level in <core>\n"
     "mem [core] <hex addr>           # Show contents of virtual memory <hex addr> in [core] (physical memory <hex addr> if omitted)\n"
@@ -586,6 +588,41 @@ void sim_t::interactive_vreg(const std::string& cmd, const std::vector<std::stri
     }
     out << std::endl;
   }
+}
+
+void sim_t::interactive_bcbuf(const std::string& cmd, const std::vector<std::string>& args)
+{
+  // Show all the regs!
+  processor_t *p = get_core(args[0]);
+  const int blen = (int)(p->VU.get_blen()) >> 3;
+  const int elen = (int)(p->VU.get_elen()) >> 3;
+  const int num_elem = blen/elen;
+
+  std::ostream out(sout_.rdbuf());
+  out << std::dec << "BLEN=" << (blen << 3) << " bits; ELEN=" << (elen << 3) << " bits" << std::endl;
+
+  for (int e = num_elem-1; e >= 0; --e) {
+    uint64_t val;
+    switch (elen) {
+      case 8:
+        val = p->VU.bc_elt<uint64_t>(e);
+        out << std::dec << "[" << e << "]: 0x" << std::hex << std::setfill ('0') << std::setw(16) << val << "  ";
+        break;
+      case 4:
+        val = p->VU.bc_elt<uint32_t>(e);
+        out << std::dec << "[" << e << "]: 0x" << std::hex << std::setfill ('0') << std::setw(8) << (uint32_t)val << "  ";
+        break;
+      case 2:
+        val = p->VU.bc_elt<uint16_t>(e);
+        out << std::dec << "[" << e << "]: 0x" << std::hex << std::setfill ('0') << std::setw(8) << (uint16_t)val << "  ";
+        break;
+      case 1:
+        val = p->VU.bc_elt<uint8_t>(e);
+        out << std::dec << "[" << e << "]: 0x" << std::hex << std::setfill ('0') << std::setw(8) << (int)(uint8_t)val << "  ";
+        break;
+    }
+  }
+  out << std::endl;
 }
 
 void sim_t::interactive_reg(const std::string& cmd, const std::vector<std::string>& args)

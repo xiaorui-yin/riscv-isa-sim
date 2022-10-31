@@ -1256,6 +1256,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
     DISASM_INSN("vsetivli", vsetivli, 0, {&xrd, &zimm5, &v_vtype});
     DISASM_INSN("vsetvli", vsetvli, 0, {&xrd, &xrs1, &v_vtype});
     DEFINE_RTYPE(vsetvl);
+    DEFINE_RTYPE(vsetbl);
 
     std::vector<const arg_t *> v_ld_unit = {&vd, &v_address, opt, &vm};
     std::vector<const arg_t *> v_st_unit = {&vs3, &v_address, opt, &vm};
@@ -1282,7 +1283,9 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
         {match_vloxei8_v, mask_vloxei8_v, "vlox%sei%d.v", v_ld_index},
         {match_vsoxei8_v, mask_vsoxei8_v, "vsox%sei%d.v", v_st_index},
 
-        {match_vle8ff_v, mask_vle8ff_v, "vl%se%dff.v", v_ld_unit}
+        {match_vle8ff_v, mask_vle8ff_v, "vl%se%dff.v", v_ld_unit},
+
+        {match_vle8bc_v,   mask_vle8bc_v,   "vl%se%dbc.v",   v_ld_unit}
       };
 
       reg_t elt_map[] = {0x00000000, 0x00005000, 0x00006000, 0x00007000,
@@ -1626,6 +1629,7 @@ void disassembler_t::add_instructions(const isa_parser_t* isa)
     DISASM_OPIV_VF_INSN(vfmsub);
     DISASM_OPIV_VF_INSN(vfnmsub);
     DISASM_OPIV_VF_INSN(vfmacc);
+    DISASM_OPIV_VF_INSN(vfbmacc);
     DISASM_OPIV_VF_INSN(vfnmacc);
     DISASM_OPIV_VF_INSN(vfmsac);
     DISASM_OPIV_VF_INSN(vfnmsac);

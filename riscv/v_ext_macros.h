@@ -2094,7 +2094,6 @@ reg_t index[P.VU.vlmax]; \
 #define VI_VFP_BC_LOOP_BASE \
   VI_VFP_BC_COMMON \
   for (reg_t i = P.VU.vstart->read(); i < vl; ++i) { \
-    rd_num += i; \
     for (reg_t j = 0; j < bl; ++j) { \
       VI_LOOP_ELEMENT_SKIP();
 
@@ -2104,7 +2103,8 @@ reg_t index[P.VU.vlmax]; \
   P.VU.vstart->write(0);
 
 #define VFP_VF_BC_PARAMS(width) \
-  float##width##_t &vd = P.VU.elt<float##width##_t>(rd_num, j, true); \
+  reg_t vd_idx = j * vl + i; \
+  float##width##_t &vd = P.VU.elt<float##width##_t>(rd_num, vd_idx, true); \
   float##width##_t rs1 = f##width(READ_FREG(rs1_num)); \
   float##width##_t vs2 = P.VU.elt<float##width##_t>(rs2_num, i); \
   float##width##_t bc  = P.VU.bc_elt<float##width##_t>(j);
@@ -2140,7 +2140,8 @@ reg_t index[P.VU.vlmax]; \
 
 
 #define VFP_VV_BC_PARAMS(width) \
-  float##width##_t &vd = P.VU.elt<float##width##_t>(rd_num, j, true); \
+  reg_t vd_idx = j * vl + i; \
+  float##width##_t &vd = P.VU.elt<float##width##_t>(rd_num, vd_idx, true); \
   float##width##_t vs2 = P.VU.elt<float##width##_t>(rs2_num, i); \
   float##width##_t bc  = P.VU.bc_elt<float##width##_t>(j);
 

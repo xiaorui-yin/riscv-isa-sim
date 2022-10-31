@@ -170,6 +170,7 @@ void processor_t::parse_varch_string(const char* s)
 
   VU.VLEN = vlen;
   VU.ELEN = elen;
+  VU.BLEN = blen;
   VU.vlenb = vlen / 8;
   VU.blenb = blen / 8;
   VU.vstart_alu = vstart_alu;
