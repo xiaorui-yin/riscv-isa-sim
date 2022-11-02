@@ -1246,15 +1246,31 @@ reg_t index[P.VU.vlmax]; \
   const reg_t vl = is_mask_ldst ? ((P.VU.vl->read() + 7) / 8) : P.VU.vl->read(); \
   const reg_t baseAddr = RS1; \
   const reg_t vs3 = insn.rd(); \
+  const reg_t bl = P.VU.bl->read(); \
   VI_CHECK_STORE(elt_width, is_mask_ldst); \
-  for (reg_t i = 0; i < vl; ++i) { \
-    VI_STRIP(i) \
-    VI_ELEMENT_SKIP(i); \
-    P.VU.vstart->write(i); \
-    for (reg_t fn = 0; fn < nf; ++fn) { \
-      elt_width##_t val = P.VU.elt<elt_width##_t>(vs3 + fn * emul, vreg_inx); \
-      MMU.store<elt_width##_t>( \
-        baseAddr + (stride) + (offset) * sizeof(elt_width##_t), val); \
+  if (bl == 0) { \
+    for (reg_t i = 0; i < vl; ++i) { \
+      VI_STRIP(i) \
+      VI_ELEMENT_SKIP(i); \
+      P.VU.vstart->write(i); \
+      for (reg_t fn = 0; fn < nf; ++fn) { \
+        elt_width##_t val = P.VU.elt<elt_width##_t>(vs3 + fn * emul, vreg_inx); \
+        MMU.store<elt_width##_t>( \
+          baseAddr + (stride) + (offset) * sizeof(elt_width##_t), val); \
+      } \
+    } \
+  } else { \
+    for (reg_t j = 0; j < vl/4; ++j) { \
+      for (reg_t i = 0; i < 4; ++i) { \
+        VI_STRIP(j * 4 + i) \
+        VI_ELEMENT_SKIP(j * 4 + i); \
+        P.VU.vstart->write(j * 4 + i); \
+        for (reg_t fn = 0; fn < nf; ++fn) { \
+          elt_width##_t val = P.VU.elt<elt_width##_t>(vs3 + fn * emul, vreg_inx); \
+          MMU.store<elt_width##_t>( \
+            baseAddr + (stride) + (offset + j) * sizeof(elt_width##_t), val); \
+        } \
+      } \
     } \
   } \
   P.VU.vstart->write(0);
