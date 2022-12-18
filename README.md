@@ -186,6 +186,10 @@ To end the simulation from the debug prompt, press `<control>-<c>` or:
 
     : q
 
+To view the content in the broadcast buffer:
+
+    : bcbuf 0
+
 Debugging With Gdb
 ------------------
 
