@@ -1260,11 +1260,11 @@ reg_t index[P.VU.vlmax]; \
       } \
     } \
   } else { \
-    for (reg_t j = 0; j < vl/4; ++j) { \
-      for (reg_t i = 0; i < 4; ++i) { \
-        VI_STRIP(j * 4 + i) \
-        VI_ELEMENT_SKIP(j * 4 + i); \
-        P.VU.vstart->write(j * 4 + i); \
+    for (reg_t i = 0; i < vl/4; ++i) { \
+      for (reg_t j = 0; j < 4; ++j) { \
+        VI_STRIP(i * 4 + j) \
+        VI_ELEMENT_SKIP(i * 4 + j); \
+        P.VU.vstart->write(i * 4 + j); \
         for (reg_t fn = 0; fn < nf; ++fn) { \
           elt_width##_t val = P.VU.elt<elt_width##_t>(vs3 + fn * emul, vreg_inx); \
           MMU.store<elt_width##_t>( \
@@ -2109,20 +2109,22 @@ reg_t index[P.VU.vlmax]; \
 
 #define VI_VFP_BC_LOOP_BASE \
   VI_VFP_BC_COMMON \
-  for (reg_t i = P.VU.vstart->read(); i < vl; ++i) { \
-    for (reg_t j = 0; j < bl; ++j) { \
-      VI_LOOP_ELEMENT_SKIP();
+  for (reg_t i = P.VU.vstart->read(); i < vl/4; ++i) { \
+    for (reg_t l = 0; l < 4; ++l) { \
+      for (reg_t j = 0; j < bl; ++j) { \
+        VI_LOOP_ELEMENT_SKIP();
 
 #define VI_VFP_BC_LOOP_END \
+      } \
     } \
   } \
   P.VU.vstart->write(0);
 
 #define VFP_VF_BC_PARAMS(width) \
-  reg_t vd_idx = j * vl + i; \
-  float##width##_t &vd = P.VU.elt<float##width##_t>(rd_num, vd_idx, true); \
+  reg_t vd_idx = j * 4 + l; \
+  float##width##_t &vd = P.VU.elt<float##width##_t>(rd_num + i, vd_idx, true); \
   float##width##_t rs1 = f##width(READ_FREG(rs1_num)); \
-  float##width##_t vs2 = P.VU.elt<float##width##_t>(rs2_num, i); \
+  float##width##_t vs2 = P.VU.elt<float##width##_t>(rs2_num, 4 * i + l); \
   float##width##_t bc  = P.VU.bc_elt<float##width##_t>(j);
 
 #define VI_VFP_VF_BC_LOOP(BODY16, BODY32, BODY64) \
@@ -2156,9 +2158,9 @@ reg_t index[P.VU.vlmax]; \
 
 
 #define VFP_VV_BC_PARAMS(width) \
-  reg_t vd_idx = j * vl + i; \
-  float##width##_t &vd = P.VU.elt<float##width##_t>(rd_num, vd_idx, true); \
-  float##width##_t vs2 = P.VU.elt<float##width##_t>(rs2_num, i); \
+  reg_t vd_idx = j * 4 + l; \
+  float##width##_t &vd = P.VU.elt<float##width##_t>(rd_num + i, vd_idx, true); \
+  float##width##_t vs2 = P.VU.elt<float##width##_t>(rs2_num, 4 * i + l); \
   float##width##_t bc  = P.VU.bc_elt<float##width##_t>(j);
 
 #define VI_VFP_VV_BC_LOOP(BODY16, BODY32, BODY64) \
